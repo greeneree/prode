@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem C:devprode *)",
+      "Bash(npm install *)"
+    ]
+  }
+}
