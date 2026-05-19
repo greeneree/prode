@@ -1,4 +1,4 @@
-# 프로젝트: SSMC 기획 자동화 툴
+# 프로젝트: PRODE 기획 자동화 툴
 
 ## 기술 스택
 - Frontend: React + Vite + Tailwind CSS (포트 5173)
