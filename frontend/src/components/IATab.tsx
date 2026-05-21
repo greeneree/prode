@@ -134,7 +134,7 @@ export default function IATab({ projectId, projectName }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    fetch(`http://localhost:8000/ia?project_id=${projectId}`)
+    fetch(`${import.meta.env.VITE_API_URL}/ia?project_id=${projectId}`)
       .then(res => (res.ok ? res.json() : null))
       .then(data => { if (data?.tree_data) setTree(data.tree_data) })
       .catch(() => {})
@@ -145,7 +145,7 @@ export default function IATab({ projectId, projectName }: Props) {
     setGenerating(true)
     setSaved(false)
     try {
-      const res = await fetch('http://localhost:8000/ia/generate', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/ia/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ project_id: projectId, description }),
@@ -163,7 +163,7 @@ export default function IATab({ projectId, projectName }: Props) {
     if (saving || tree.length === 0) return
     setSaving(true)
     try {
-      const res = await fetch('http://localhost:8000/ia', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/ia`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ project_id: projectId, title: 'IA', tree_data: tree }),

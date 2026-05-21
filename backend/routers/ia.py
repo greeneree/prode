@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import anthropic
 
 from utils.supabase_client import get_supabase
+from routers.activity_logs import log_activity
 
 load_dotenv()
 
@@ -94,6 +95,7 @@ def save_ia(body: SaveRequest):
         )
     if not res.data:
         raise HTTPException(status_code=500, detail="저장 실패")
+    log_activity(body.project_id, "IA 업데이트", body.title)
     return res.data[0]
 
 

@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import anthropic
 
 from utils.supabase_client import get_supabase
+from routers.activity_logs import log_activity
 
 load_dotenv()
 
@@ -63,6 +64,7 @@ def save_requirement(body: SaveRequest):
     }).execute()
     if not res.data:
         raise HTTPException(status_code=500, detail="저장 실패")
+    log_activity(body.project_id, "요건 정리 저장")
     return res.data[0]
 
 

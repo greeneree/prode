@@ -1,7 +1,9 @@
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import SummaryTab from '../components/SummaryTab'
 import RequirementsTab from '../components/RequirementsTab'
 import IATab from '../components/IATab'
+import DescriptionTab from '../components/DescriptionTab'
 
 interface Project {
   id: string
@@ -21,7 +23,7 @@ const TAG_BADGE: Record<string, string> = {
   'TBD': 'bg-gray-100 text-gray-600',
 }
 
-const TABS = ['요건 정리', 'IA'] as const
+const TABS = ['Summary', '요건 정리', 'IA', '디스크립션'] as const
 type Tab = (typeof TABS)[number]
 
 export default function ProjectDetail() {
@@ -31,13 +33,13 @@ export default function ProjectDetail() {
 
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<Tab>('요건 정리')
+  const [activeTab, setActiveTab] = useState<Tab>('Summary')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     setLoading(true)
-    fetch(`http://localhost:8000/projects/${id}`)
+    fetch(`${import.meta.env.VITE_API_URL}/projects/${id}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         setProject(data)
@@ -49,7 +51,7 @@ export default function ProjectDetail() {
   const handleDelete = async () => {
     setDeleting(true)
     try {
-      await fetch(`http://localhost:8000/projects/${id}`, { method: 'DELETE' })
+      await fetch(`${import.meta.env.VITE_API_URL}/projects/${id}`, { method: 'DELETE' })
       await refreshProjects()
       navigate('/')
     } finally {
@@ -116,10 +118,12 @@ export default function ProjectDetail() {
 
       {/* 탭 콘텐츠 — flex-1로 남은 높이 모두 사용 */}
       <div className="flex-1 min-h-0">
+        {activeTab === 'Summary' && <SummaryTab projectId={id!} />}
         {activeTab === '요건 정리' && <RequirementsTab projectId={id!} />}
         {activeTab === 'IA' && (
           <IATab projectId={id!} projectName={project.name} />
         )}
+        {activeTab === '디스크립션' && <DescriptionTab projectId={id!} />}
       </div>
 
       {/* 삭제 확인 모달 */}

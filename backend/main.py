@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import projects, requirements, ia
+from routers import projects, requirements, ia, tasks, screen_descs, auth, project_notes, activity_logs
 
 app = FastAPI(title="PRODE API", version="0.1.0")
 
@@ -16,6 +16,11 @@ app.add_middleware(
 app.include_router(projects.router)
 app.include_router(requirements.router)
 app.include_router(ia.router)
+app.include_router(tasks.router)
+app.include_router(screen_descs.router)
+app.include_router(auth.router)
+app.include_router(project_notes.router)
+app.include_router(activity_logs.router)
 
 
 @app.get("/health")

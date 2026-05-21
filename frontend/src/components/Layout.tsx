@@ -1,4 +1,4 @@
-import { Outlet, Link, useNavigate, useParams } from 'react-router-dom'
+import { Outlet, Link, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 
 interface Project {
@@ -16,6 +16,7 @@ const TAG_BADGE: Record<string, string> = {
 
 export default function Layout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { id: currentId } = useParams()
   const [projects, setProjects] = useState<Project[]>([])
   const [showModal, setShowModal] = useState(false)
@@ -24,7 +25,7 @@ export default function Layout() {
 
   const fetchProjects = async () => {
     try {
-      const res = await fetch('http://localhost:8000/projects')
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/projects`)
       if (res.ok) setProjects(await res.json())
     } catch {
       // 서버 미기동 시 무시
@@ -44,7 +45,7 @@ export default function Layout() {
     if (!form.name.trim() || creating) return
     setCreating(true)
     try {
-      const res = await fetch('http://localhost:8000/projects', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/projects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -86,8 +87,23 @@ export default function Layout() {
           </button>
         </div>
 
+        {/* 대시보드 메뉴 */}
+        <div className="px-2 pb-2">
+          <Link
+            to="/dashboard"
+            className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              location.pathname === '/dashboard'
+                ? 'bg-gray-700 text-white'
+                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+            }`}
+          >
+            <span className="text-base leading-none">📋</span>
+            Task Board
+          </Link>
+        </div>
+
         {/* 프로젝트 목록 */}
-        <nav className="flex-1 overflow-y-auto px-2 pb-4">
+        <nav className="flex-1 overflow-y-auto px-2 pb-2">
           {projects.length === 0 ? (
             <p className="px-3 py-2 text-xs text-gray-500">프로젝트가 없습니다</p>
           ) : (
@@ -121,6 +137,19 @@ export default function Layout() {
             </ul>
           )}
         </nav>
+        {/* 로그아웃 */}
+        <div className="px-4 py-3 border-t border-gray-700 shrink-0">
+          <button
+            onClick={() => {
+              sessionStorage.removeItem('prode_auth')
+              navigate('/login')
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-gray-400 hover:bg-gray-800 hover:text-white text-sm transition-colors"
+          >
+            <span className="text-base leading-none">↩</span>
+            로그아웃
+          </button>
+        </div>
       </aside>
 
       {/* 우측 메인 콘텐츠 */}

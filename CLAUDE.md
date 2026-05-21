@@ -30,6 +30,6 @@ ANTHROPIC_API_KEY=
 - projects: 프로젝트 기본 정보
 - requirements: 요건 정리 결과
 - ia_docs: IA 트리 구조 (jsonb)
-e
+- tasks: 칸반 태스크 (status: todo/in_progress/done, source: manual/auto)
 ## 현재 개발 단계
 MVP — M1(프로젝트 관리) + M2(요건 정리) + M3(IA 편집/엑셀)
