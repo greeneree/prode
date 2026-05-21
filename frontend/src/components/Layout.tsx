@@ -23,9 +23,11 @@ export default function Layout() {
   const [form, setForm] = useState({ name: '', client: '', tag: 'TBD' })
   const [creating, setCreating] = useState(false)
 
+  const role = sessionStorage.getItem('prode_auth') ?? 'master'
+
   const fetchProjects = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/projects`)
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/projects?owner=${role}`)
       if (res.ok) setProjects(await res.json())
     } catch {
       // 서버 미기동 시 무시
@@ -52,6 +54,7 @@ export default function Layout() {
           name: form.name.trim(),
           client: form.client.trim() || null,
           tag: form.tag,
+          owner: role,
         }),
       })
       if (res.ok) {

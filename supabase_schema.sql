@@ -86,3 +86,9 @@ CREATE TABLE activity_logs (
 );
 
 ALTER TABLE activity_logs DISABLE ROW LEVEL SECURITY;
+
+-- =========================================
+-- 계정별 프로젝트 분리
+-- =========================================
+
+ALTER TABLE projects ADD COLUMN owner text DEFAULT 'master';

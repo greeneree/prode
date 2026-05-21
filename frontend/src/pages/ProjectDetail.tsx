@@ -50,8 +50,9 @@ export default function ProjectDetail() {
 
   const handleDelete = async () => {
     setDeleting(true)
+    const role = sessionStorage.getItem('prode_auth') ?? 'master'
     try {
-      await fetch(`${import.meta.env.VITE_API_URL}/projects/${id}`, { method: 'DELETE' })
+      await fetch(`${import.meta.env.VITE_API_URL}/projects/${id}?owner=${role}`, { method: 'DELETE' })
       await refreshProjects()
       navigate('/')
     } finally {
