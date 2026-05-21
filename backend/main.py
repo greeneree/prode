@@ -7,7 +7,11 @@ app = FastAPI(title="PRODE API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://prode-theta-ten.vercel.app",
+        "https://prode-git-main-jink30s-projects.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
