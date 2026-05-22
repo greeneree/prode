@@ -83,7 +83,7 @@ def generate_tasks(body: GenerateTasksRequest):
 
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
-        model="claude-3-5-sonnet-20240620",
+        model="claude-3-haiku-20240307",
         max_tokens=2048,
         system=TASK_EXTRACT_SYSTEM,
         messages=[{"role": "user", "content": body.result_html}],
