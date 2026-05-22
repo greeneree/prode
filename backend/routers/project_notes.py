@@ -22,7 +22,7 @@ def get_notes(project_id: str):
         .maybe_single()
         .execute()
     )
-    return res.data
+    return res.data if res else None
 
 
 @router.post("")
