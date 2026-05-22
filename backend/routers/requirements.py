@@ -45,7 +45,7 @@ def generate_requirements(body: GenerateRequest):
 
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
-        model="claude-3-haiku-20240307",
+        model="claude-sonnet-4-20250514",
         max_tokens=4096,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": body.raw_input}],
