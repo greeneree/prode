@@ -1,10 +1,24 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 from routers import projects, requirements, ia, tasks, screen_descs, auth, project_notes, activity_logs
 
+MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50MB
+
+
+class LimitUploadSizeMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > MAX_UPLOAD_SIZE:
+            return Response("Request body too large (max 50MB)", status_code=413)
+        return await call_next(request)
+
+
 app = FastAPI(title="PRODE API", version="0.1.0")
 
+app.add_middleware(LimitUploadSizeMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

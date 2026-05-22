@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -52,6 +53,7 @@ def parse_image_base64(image_base64: str) -> tuple[str, str]:
 
 @router.post("/analyze")
 def analyze_screen(body: AnalyzeRequest):
+    logging.info(f"image_base64 length: {len(body.image_base64)}")
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다")
