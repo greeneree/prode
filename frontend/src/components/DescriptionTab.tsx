@@ -187,11 +187,34 @@ export default function DescriptionTab({ projectId }: Props) {
     fetchSavedDescs(node.id)
   }
 
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const MAX = 800
+        let w = img.width
+        let h = img.height
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = (h * MAX) / w; w = MAX }
+          else { w = (w * MAX) / h; h = MAX }
+        }
+        canvas.width = w
+        canvas.height = h
+        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+        URL.revokeObjectURL(url)
+        resolve(canvas.toDataURL('image/jpeg', 0.7).split(',')[1])
+      }
+      img.src = url
+    })
+  }
+
   // document 레벨 paste 이벤트 — 화면 선택 상태에서 어디서든 Ctrl+V
   useEffect(() => {
     if (!selectedNode) return
 
-    const handler = (e: ClipboardEvent) => {
+    const handler = async (e: ClipboardEvent) => {
       const target = e.target as HTMLElement
       if (
         target.tagName === 'INPUT' ||
@@ -206,15 +229,11 @@ export default function DescriptionTab({ projectId }: Props) {
         if (item.type.startsWith('image/')) {
           const blob = item.getAsFile()
           if (!blob) continue
-          const reader = new FileReader()
-          reader.onload = (ev) => {
-            const dataUrl = ev.target?.result as string
-            setImagePreview(dataUrl)
-            setImageBase64(dataUrl)
-            setResult(null)
-            setSaved(false)
-          }
-          reader.readAsDataURL(blob)
+          const compressed = await compressImage(blob)
+          setImagePreview(`data:image/jpeg;base64,${compressed}`)
+          setImageBase64(compressed)
+          setResult(null)
+          setSaved(false)
           break
         }
       }
