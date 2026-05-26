@@ -12,37 +12,33 @@ load_dotenv()
 router = APIRouter(prefix="/requirements", tags=["requirements"])
 
 SYSTEM_PROMPT = """당신은 IT 프로젝트 기획 전문가입니다.
-입력된 내용을 분석하여 기획 문서 허브 형태의 HTML을 생성하세요.
-반드시 HTML만 출력하고 다른 텍스트는 없어야 합니다.
+입력된 내용을 분석하여 JSON만 출력하세요.
+다른 텍스트, 마크다운 코드블록 없이 순수 JSON만 출력합니다.
 
-HTML 구조 및 스타일 가이드:
-- 전체 배경: 흰색, 폰트: 14px, line-height: 1.8
-- 인라인 CSS 포함하여 바로 렌더링 가능하게
+형식:
+{
+  "service_overview": {
+    "title": "서비스명",
+    "description": "서비스 설명",
+    "cards": [
+      {"icon": "🎯", "title": "서비스 목적", "description": "내용", "badge": "뱃지텍스트"}
+    ]
+  },
+  "flow_steps": [
+    {"number": 1, "title": "단계명", "owner": "담당자"}
+  ],
+  "functional_requirements": [
+    {"group": "그룹명", "name": "기능명", "description": "설명", "priority": "상"}
+  ],
+  "non_functional_requirements": [
+    {"name": "항목명", "description": "설명"}
+  ],
+  "as_is_to_be": [
+    {"as_is": "현재 상황", "to_be": "개선 방향"}
+  ]
+}
 
-1) 서비스 개요 섹션
-   - 2~3열 카드 그리드
-   - 각 카드: 이모지 아이콘 + 제목 + 설명 + 상태 뱃지
-   - 카드 배경: #f8f9ff, 테두리: 1px solid #e0e0f0, border-radius: 12px
-   - 주요 항목: 서비스 목적, 사용자 역할, 핵심 기능, 제약사항 등
-
-2) 전체 서비스 흐름 섹션
-   - 가로 스텝 형태 (번호 + 제목 + 담당자)
-   - 화살표로 연결
-   - 스텝 배경: #7B68EE, 텍스트: white
-
-3) 기능 요건 섹션
-   - 기능 그룹별 카드
-   - 각 카드: 기능명 + 설명 + 우선순위 뱃지(상/중/하)
-   - 상: #ff4444, 중: #ff9800, 하: #888888
-
-4) 비기능 요건 / 제약사항 섹션
-   - 간결한 리스트 형태
-   - 아이콘 불릿 사용
-
-5) AS-IS / TO-BE 있으면 2열 비교 카드로 표시
-
-입력 내용에 없는 섹션은 생략하고
-있는 내용만 최대한 구조화해서 보여주세요."""
+없는 항목은 빈 배열로. priority는 상/중/하 중 하나."""
 
 
 class GenerateRequest(BaseModel):
@@ -72,8 +68,8 @@ def generate_requirements(body: GenerateRequest):
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": body.raw_input}],
     )
-    result_html = message.content[0].text
-    return {"result_html": result_html}
+    result_json = message.content[0].text.strip()
+    return {"result_html": result_json}
 
 
 @router.post("")

@@ -8,8 +8,149 @@ interface Requirement {
   created_at: string
 }
 
+interface ReqCard { icon: string; title: string; description: string; badge: string }
+interface FlowStep { number: number; title: string; owner: string }
+interface FuncReq { group: string; name: string; description: string; priority: string }
+interface NonFuncReq { name: string; description: string }
+interface AsIsToBe { as_is: string; to_be: string }
+interface ReqData {
+  service_overview?: { title: string; description: string; cards: ReqCard[] }
+  flow_steps?: FlowStep[]
+  functional_requirements?: FuncReq[]
+  non_functional_requirements?: NonFuncReq[]
+  as_is_to_be?: AsIsToBe[]
+}
+
 interface Props {
   projectId: string
+}
+
+const PRIORITY_CLASS: Record<string, string> = {
+  상: 'bg-red-100 text-red-600',
+  중: 'bg-orange-100 text-orange-600',
+  하: 'bg-gray-100 text-gray-500',
+}
+
+function RequirementView({ data }: { data: ReqData }) {
+  return (
+    <div className="space-y-6">
+      {/* 서비스 개요 */}
+      {data.service_overview && (
+        <section>
+          <h3 className="text-sm font-bold text-gray-700 mb-1">{data.service_overview.title}</h3>
+          {data.service_overview.description && (
+            <p className="text-xs text-gray-400 mb-3">{data.service_overview.description}</p>
+          )}
+          <div className="grid grid-cols-3 gap-3">
+            {data.service_overview.cards.map((card, i) => (
+              <div key={i} className="bg-[#f8f9ff] border border-[#e0e0f0] rounded-xl p-3">
+                <div className="text-xl mb-1">{card.icon}</div>
+                <div className="text-sm font-medium text-gray-800 mb-1">{card.title}</div>
+                <div className="text-xs text-gray-500 mb-2">{card.description}</div>
+                {card.badge && (
+                  <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-600 rounded-full">{card.badge}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 서비스 흐름 */}
+      {data.flow_steps && data.flow_steps.length > 0 && (
+        <section>
+          <h3 className="text-sm font-bold text-gray-700 mb-3">전체 서비스 흐름</h3>
+          <div className="flex flex-wrap gap-2 items-center">
+            {data.flow_steps.flatMap((step, i) => {
+              const items = [
+                <div key={step.number} className="flex flex-col items-center bg-[#7B68EE] text-white rounded-xl px-3 py-2 min-w-[80px]">
+                  <span className="text-[10px] opacity-70">STEP {step.number}</span>
+                  <span className="text-sm font-medium">{step.title}</span>
+                  {step.owner && <span className="text-[10px] opacity-70">{step.owner}</span>}
+                </div>,
+              ]
+              if (i < data.flow_steps!.length - 1) {
+                items.push(<span key={`a${i}`} className="text-gray-400 text-sm">→</span>)
+              }
+              return items
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 기능 요건 */}
+      {data.functional_requirements && data.functional_requirements.length > 0 && (
+        <section>
+          <h3 className="text-sm font-bold text-gray-700 mb-3">기능 요건</h3>
+          <div className="space-y-2">
+            {data.functional_requirements.map((req, i) => (
+              <div key={i} className="border border-gray-200 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  {req.group && <span className="text-xs text-gray-400">{req.group}</span>}
+                  <span className="text-sm font-medium text-gray-800">{req.name}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${PRIORITY_CLASS[req.priority] ?? PRIORITY_CLASS['하']}`}>
+                    {req.priority}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500">{req.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 비기능 요건 */}
+      {data.non_functional_requirements && data.non_functional_requirements.length > 0 && (
+        <section>
+          <h3 className="text-sm font-bold text-gray-700 mb-3">비기능 요건 / 제약사항</h3>
+          <ul className="space-y-1.5">
+            {data.non_functional_requirements.map((item, i) => (
+              <li key={i} className="flex gap-2 text-sm">
+                <span className="text-indigo-400 shrink-0">•</span>
+                <span>
+                  <span className="font-medium text-gray-700">{item.name}</span>
+                  {item.description && <span className="text-gray-500"> — {item.description}</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* AS-IS / TO-BE */}
+      {data.as_is_to_be && data.as_is_to_be.length > 0 && (
+        <section>
+          <h3 className="text-sm font-bold text-gray-700 mb-3">AS-IS / TO-BE</h3>
+          <div className="space-y-2">
+            {data.as_is_to_be.map((item, i) => (
+              <div key={i} className="grid grid-cols-2 gap-3">
+                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                  <div className="text-xs font-medium text-gray-400 mb-1">AS-IS</div>
+                  <p className="text-sm text-gray-600">{item.as_is}</p>
+                </div>
+                <div className="border border-indigo-200 rounded-xl p-3 bg-indigo-50">
+                  <div className="text-xs font-medium text-indigo-400 mb-1">TO-BE</div>
+                  <p className="text-sm text-indigo-700">{item.to_be}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+function ReqContent({ resultHtml }: { resultHtml: string }) {
+  if (resultHtml.startsWith('{')) {
+    try {
+      const data: ReqData = JSON.parse(resultHtml)
+      return <RequirementView data={data} />
+    } catch {
+      // 파싱 실패 시 원본 표시
+    }
+  }
+  return <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: resultHtml }} />
 }
 
 export default function RequirementsTab({ projectId }: Props) {
@@ -49,7 +190,6 @@ export default function RequirementsTab({ projectId }: Props) {
       if (!res.ok) return
       const data = await res.json()
 
-      // 분석 완료 즉시 자동 저장
       const saveRes = await fetch(`${import.meta.env.VITE_API_URL}/requirements`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -119,7 +259,6 @@ export default function RequirementsTab({ projectId }: Props) {
             const isGenerating = generatingTaskIds.has(req.id)
             return (
               <div key={req.id} className="border border-gray-200 rounded-xl overflow-hidden">
-                {/* 아코디언 헤더 */}
                 <div
                   className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors select-none"
                   onClick={() => handleToggle(req.id)}
@@ -149,12 +288,10 @@ export default function RequirementsTab({ projectId }: Props) {
                   </button>
                 </div>
 
-                {/* 아코디언 바디 */}
                 {isOpen && (
-                  <div
-                    className="px-5 py-4 border-t border-gray-100 bg-white prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: req.result_html }}
-                  />
+                  <div className="px-5 py-4 border-t border-gray-100 bg-white">
+                    <ReqContent resultHtml={req.result_html} />
+                  </div>
                 )}
               </div>
             )
@@ -188,7 +325,6 @@ export default function RequirementsTab({ projectId }: Props) {
         </div>
       </div>
 
-      {/* 토스트 메시지 */}
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white px-5 py-2.5 rounded-xl shadow-2xl text-sm font-medium pointer-events-none">
           {toast}
