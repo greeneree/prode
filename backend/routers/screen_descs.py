@@ -28,6 +28,7 @@ class AnalyzeRequest(BaseModel):
     ia_node_id: str
     ia_node_label: str
     image_base64: str
+    media_type: str = "image/jpeg"
 
 
 class SaveRequest(BaseModel):
@@ -44,10 +45,10 @@ def parse_image_base64(image_base64: str) -> tuple[str, str]:
         header, data = image_base64.split(",", 1)
         media_type = header.split(";")[0].split(":")[1]
         if media_type not in VALID_MEDIA_TYPES:
-            media_type = "image/png"
+            media_type = "image/jpeg"
     else:
         data = image_base64
-        media_type = "image/png"
+        media_type = "image/jpeg"
     return media_type, data
 
 
@@ -58,7 +59,7 @@ def analyze_screen(body: AnalyzeRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다")
 
-    media_type, image_data = parse_image_base64(body.image_base64)
+    _, image_data = parse_image_base64(body.image_base64)
 
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
@@ -72,7 +73,7 @@ def analyze_screen(body: AnalyzeRequest):
                     "type": "image",
                     "source": {
                         "type": "base64",
-                        "media_type": media_type,
+                        "media_type": body.media_type,
                         "data": image_data,
                     },
                 },

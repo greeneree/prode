@@ -256,6 +256,7 @@ export default function DescriptionTab({ projectId }: Props) {
           ia_node_id: selectedNode.id,
           ia_node_label: selectedNode.label,
           image_base64: imageBase64,
+          media_type: 'image/jpeg',
         }),
       })
       if (res.ok) {
