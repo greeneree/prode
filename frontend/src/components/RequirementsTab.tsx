@@ -14,21 +14,10 @@ interface Props {
 
 export default function RequirementsTab({ projectId }: Props) {
   const [rawInput, setRawInput] = useState('')
-  const [resultHtml, setResultHtml] = useState<string | null>(null)
-  const [currentRaw, setCurrentRaw] = useState('')
   const [generating, setGenerating] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [isSaved, setIsSaved] = useState(false)
   const [savedList, setSavedList] = useState<Requirement[]>([])
-
-  // 현재 결과 뷰의 "태스크로 보내기"
-  const [sendingTasks, setSendingTasks] = useState(false)
-  const [tasksSent, setTasksSent] = useState<number | null>(null)
-
-  // 저장 목록 카드별 [태스크 생성] 로딩 상태
+  const [openId, setOpenId] = useState<string | null>(null)
   const [generatingTaskIds, setGeneratingTaskIds] = useState<Set<string>>(new Set())
-
-  // 토스트 메시지
   const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
@@ -51,79 +40,38 @@ export default function RequirementsTab({ projectId }: Props) {
   const handleGenerate = async () => {
     if (!rawInput.trim() || generating) return
     setGenerating(true)
-    setResultHtml(null)
-    setIsSaved(false)
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/requirements/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ project_id: projectId, raw_input: rawInput }),
       })
-      if (res.ok) {
-        const data = await res.json()
-        setResultHtml(data.result_html)
-        setCurrentRaw(rawInput)
+      if (!res.ok) return
+      const data = await res.json()
+
+      // 분석 완료 즉시 자동 저장
+      const saveRes = await fetch(`${import.meta.env.VITE_API_URL}/requirements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: projectId, raw_input: rawInput, result_html: data.result_html }),
+      })
+      if (saveRes.ok) {
+        const saved = await saveRes.json()
+        await fetchSaved()
+        setOpenId(saved.id)
       }
+      setRawInput('')
     } finally {
       setGenerating(false)
     }
   }
 
-  const handleSave = async () => {
-    if (!resultHtml || saving) return
-    setSaving(true)
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/requirements`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project_id: projectId, raw_input: currentRaw, result_html: resultHtml }),
-      })
-      if (res.ok) {
-        setIsSaved(true)
-        await fetchSaved()
-      }
-    } finally {
-      setSaving(false)
-    }
+  const handleToggle = (id: string) => {
+    setOpenId((prev) => (prev === id ? null : id))
   }
 
-  const handleNew = () => {
-    setResultHtml(null)
-    setIsSaved(false)
-    setRawInput('')
-    setCurrentRaw('')
-    setTasksSent(null)
-  }
-
-  const handleCardClick = (req: Requirement) => {
-    setResultHtml(req.result_html)
-    setCurrentRaw(req.raw_input)
-    setIsSaved(true)
-    setTasksSent(null)
-  }
-
-  // 현재 결과 뷰 → 태스크 일괄 생성
-  const handleSendToTasks = async () => {
-    if (!resultHtml || sendingTasks) return
-    setSendingTasks(true)
-    setTasksSent(null)
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/tasks/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project_id: projectId, result_html: resultHtml }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setTasksSent(data.count)
-      }
-    } finally {
-      setSendingTasks(false)
-    }
-  }
-
-  // 저장된 요건 카드 → 태스크 생성
-  const handleGenerateTasksFromReq = async (req: Requirement) => {
+  const handleGenerateTasksFromReq = async (req: Requirement, e: React.MouseEvent) => {
+    e.stopPropagation()
     if (generatingTaskIds.has(req.id)) return
     setGeneratingTaskIds((prev) => new Set([...prev, req.id]))
     try {
@@ -157,154 +105,87 @@ export default function RequirementsTab({ projectId }: Props) {
       minute: '2-digit',
     })
 
-  // 저장 목록 카드 컴포넌트 (두 섹션에서 재사용)
-  const SavedReqCard = ({ req, compact }: { req: Requirement; compact?: boolean }) => {
-    const isGenerating = generatingTaskIds.has(req.id)
-    return (
-      <div
-        key={req.id}
-        className={`flex items-center gap-2 rounded-lg border border-gray-200 hover:border-indigo-200 transition-colors ${compact ? 'px-3 py-2' : 'p-3'}`}
-      >
-        {/* 클릭 → 요건 결과 표시 */}
-        <div
-          className="flex-1 min-w-0 cursor-pointer"
-          onClick={() => handleCardClick(req)}
-        >
-          <div className="text-xs text-gray-400 mb-0.5">{formatDate(req.created_at)}</div>
-          <div className={`text-gray-700 truncate ${compact ? 'text-sm' : 'text-sm'}`}>
-            {req.raw_input.slice(0, 50)}
-            {req.raw_input.length > 50 ? '...' : ''}
-          </div>
-        </div>
-
-        {/* [태스크 생성] 버튼 */}
-        <button
-          onClick={() => handleGenerateTasksFromReq(req)}
-          disabled={isGenerating}
-          className="shrink-0 flex items-center gap-1 px-2 py-1 text-xs rounded border border-purple-300 text-purple-600 hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-        >
-          {isGenerating ? (
-            <>
-              <span className="inline-block w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-              생성중
-            </>
-          ) : (
-            '태스크 생성'
-          )}
-        </button>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex h-full gap-6 relative">
-      {/* 좌측 패널 40% */}
-      <div className="w-2/5 flex flex-col border-r border-gray-200 pr-6">
-        <textarea
-          value={rawInput}
-          onChange={(e) => setRawInput(e.target.value)}
-          placeholder="회의록, 컨플루언스 내용 등을 붙여넣으세요"
-          className="flex-1 min-h-[400px] resize-none border border-gray-200 rounded-xl p-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 leading-relaxed"
-        />
-        <button
-          onClick={handleGenerate}
-          disabled={!rawInput.trim() || generating}
-          className="mt-4 w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
-        >
-          {generating ? (
-            <>
-              <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              분석 중...
-            </>
-          ) : (
-            '요건 정리 시작'
-          )}
-        </button>
+    <div className="flex flex-col h-full">
+      {/* 상단 스크롤 영역 */}
+      <div className="flex-1 overflow-y-auto px-4 pt-4 space-y-2">
+        {savedList.length === 0 ? (
+          <div className="flex items-center justify-center h-40">
+            <p className="text-gray-400 text-sm">저장된 요건이 없습니다</p>
+          </div>
+        ) : (
+          savedList.map((req) => {
+            const isOpen = openId === req.id
+            const isGenerating = generatingTaskIds.has(req.id)
+            return (
+              <div key={req.id} className="border border-gray-200 rounded-xl overflow-hidden">
+                {/* 아코디언 헤더 */}
+                <div
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors select-none"
+                  onClick={() => handleToggle(req.id)}
+                >
+                  <span className={`text-gray-400 text-[10px] transition-transform duration-150 ${isOpen ? 'rotate-90' : ''}`}>
+                    ▶
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs text-gray-400 mr-2">{formatDate(req.created_at)}</span>
+                    <span className="text-sm text-gray-700">
+                      {req.raw_input.slice(0, 50)}{req.raw_input.length > 50 ? '...' : ''}
+                    </span>
+                  </div>
+                  <button
+                    onClick={(e) => handleGenerateTasksFromReq(req, e)}
+                    disabled={isGenerating}
+                    className="shrink-0 flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border border-purple-300 text-purple-600 hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <span className="inline-block w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                        생성중
+                      </>
+                    ) : (
+                      '태스크 생성'
+                    )}
+                  </button>
+                </div>
+
+                {/* 아코디언 바디 */}
+                {isOpen && (
+                  <div
+                    className="px-5 py-4 border-t border-gray-100 bg-white prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: req.result_html }}
+                  />
+                )}
+              </div>
+            )
+          })
+        )}
       </div>
 
-      {/* 우측 패널 60% */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {resultHtml ? (
-          <>
-            {/* 상단 버튼 */}
-            <div className="shrink-0 flex items-center justify-end gap-2 mb-3">
-              {tasksSent !== null ? (
-                <span className="text-sm text-purple-600 font-medium">태스크 {tasksSent}개 생성됨 ✓</span>
-              ) : (
-                <button
-                  onClick={handleSendToTasks}
-                  disabled={sendingTasks}
-                  className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center gap-1.5"
-                >
-                  {sendingTasks ? (
-                    <>
-                      <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      추출 중...
-                    </>
-                  ) : (
-                    '태스크로 보내기'
-                  )}
-                </button>
-              )}
-              {isSaved ? (
-                <span className="text-sm text-green-600 font-medium">저장됨 ✓</span>
-              ) : (
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium transition-colors"
-                >
-                  {saving ? '저장 중...' : '저장'}
-                </button>
-              )}
-              <button
-                onClick={handleNew}
-                className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 text-sm hover:bg-gray-50 transition-colors"
-              >
-                새로 정리
-              </button>
-            </div>
-
-            {/* HTML 렌더링 */}
-            <div
-              className="flex-1 overflow-y-auto border border-gray-200 rounded-xl p-4 bg-white"
-              dangerouslySetInnerHTML={{ __html: resultHtml }}
-            />
-
-            {/* 저장 목록 */}
-            {savedList.length > 0 && (
-              <div className="shrink-0 mt-4 max-h-44 overflow-y-auto">
-                <p className="text-xs font-medium text-gray-400 mb-2">저장된 요건 정리</p>
-                <div className="space-y-1.5">
-                  {savedList.map((req) => (
-                    <SavedReqCard key={req.id} req={req} compact />
-                  ))}
-                </div>
-              </div>
+      {/* 하단 고정 입력 영역 */}
+      <div className="shrink-0 border-t border-gray-200 p-4">
+        <div className="flex gap-3 items-center">
+          <textarea
+            value={rawInput}
+            onChange={(e) => setRawInput(e.target.value)}
+            placeholder="회의록, 요건 내용을 입력하세요"
+            className="flex-1 h-[120px] resize-none border border-gray-200 rounded-xl p-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 leading-relaxed"
+          />
+          <button
+            onClick={handleGenerate}
+            disabled={!rawInput.trim() || generating}
+            className="shrink-0 h-[120px] w-24 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors flex flex-col items-center justify-center gap-2"
+          >
+            {generating ? (
+              <>
+                <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>분석 중...</span>
+              </>
+            ) : (
+              '요건 정리'
             )}
-          </>
-        ) : (
-          <div className="flex flex-col h-full">
-            {!generating && (
-              <div className="flex items-center justify-center h-48 bg-gray-50 rounded-xl border border-dashed border-gray-300 mb-4 shrink-0">
-                <p className="text-gray-400 text-sm">
-                  좌측에 내용을 입력 후 요건 정리를 시작하세요
-                </p>
-              </div>
-            )}
-
-            {savedList.length > 0 && (
-              <div className="flex-1 overflow-y-auto">
-                <p className="text-xs font-medium text-gray-400 mb-2">저장된 요건 정리</p>
-                <div className="space-y-2">
-                  {savedList.map((req) => (
-                    <SavedReqCard key={req.id} req={req} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+          </button>
+        </div>
       </div>
 
       {/* 토스트 메시지 */}
