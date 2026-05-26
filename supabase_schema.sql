@@ -92,3 +92,18 @@ ALTER TABLE activity_logs DISABLE ROW LEVEL SECURITY;
 -- =========================================
 
 ALTER TABLE projects ADD COLUMN owner text DEFAULT 'master';
+
+-- =========================================
+-- IA 버전 관리
+-- =========================================
+
+CREATE TABLE ia_versions (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  project_id uuid REFERENCES projects(id) ON DELETE CASCADE,
+  version_number integer NOT NULL,
+  title text,
+  tree_data jsonb DEFAULT '[]',
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE ia_versions DISABLE ROW LEVEL SECURITY;

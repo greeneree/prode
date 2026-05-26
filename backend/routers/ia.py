@@ -95,8 +95,54 @@ def save_ia(body: SaveRequest):
         )
     if not res.data:
         raise HTTPException(status_code=500, detail="저장 실패")
+
+    # 버전 채번 후 ia_versions에 INSERT
+    ver_res = (
+        sb.table("ia_versions")
+        .select("version_number")
+        .eq("project_id", body.project_id)
+        .order("version_number", desc=True)
+        .limit(1)
+        .execute()
+    )
+    next_version = (ver_res.data[0]["version_number"] + 1) if ver_res.data else 1
+    sb.table("ia_versions").insert({
+        "project_id": body.project_id,
+        "version_number": next_version,
+        "title": body.title,
+        "tree_data": body.tree_data,
+    }).execute()
+
     log_activity(body.project_id, "IA 업데이트", body.title)
     return res.data[0]
+
+
+@router.get("/versions")
+def get_ia_versions(project_id: str):
+    sb = get_supabase()
+    res = (
+        sb.table("ia_versions")
+        .select("id, version_number, title, created_at")
+        .eq("project_id", project_id)
+        .order("version_number", desc=True)
+        .execute()
+    )
+    return res.data
+
+
+@router.get("/versions/{version_id}")
+def get_ia_version(version_id: str):
+    sb = get_supabase()
+    res = (
+        sb.table("ia_versions")
+        .select("*")
+        .eq("id", version_id)
+        .maybe_single()
+        .execute()
+    )
+    if not res.data:
+        raise HTTPException(status_code=404, detail="버전을 찾을 수 없습니다")
+    return res.data
 
 
 @router.get("")

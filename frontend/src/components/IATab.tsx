@@ -15,6 +15,13 @@ interface DisplayNode {
   isLast: boolean
 }
 
+interface IAVersion {
+  id: string
+  version_number: number
+  title: string
+  created_at: string
+}
+
 interface Props {
   projectId: string
   projectName: string
@@ -132,6 +139,10 @@ export default function IATab({ projectId, projectName }: Props) {
   const [saved, setSaved] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showVersions, setShowVersions] = useState(false)
+  const [versions, setVersions] = useState<IAVersion[]>([])
+  const [versionsLoading, setVersionsLoading] = useState(false)
+  const [loadingVersionId, setLoadingVersionId] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/ia?project_id=${projectId}`)
@@ -173,6 +184,45 @@ export default function IATab({ projectId, projectName }: Props) {
       setSaving(false)
     }
   }
+
+  const fetchVersions = async () => {
+    setVersionsLoading(true)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/ia/versions?project_id=${projectId}`)
+      if (res.ok) setVersions(await res.json())
+    } finally {
+      setVersionsLoading(false)
+    }
+  }
+
+  const handleOpenVersions = () => {
+    setShowVersions(true)
+    fetchVersions()
+  }
+
+  const handleLoadVersion = async (versionId: string) => {
+    setLoadingVersionId(versionId)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/ia/versions/${versionId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setTree(data.tree_data)
+        setSaved(false)
+        setShowVersions(false)
+      }
+    } finally {
+      setLoadingVersionId(null)
+    }
+  }
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
 
   const handleDownload = () => {
     const rows = treeToRows(tree)
@@ -237,6 +287,13 @@ export default function IATab({ projectId, projectName }: Props) {
         <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50">
           <span className="text-xs font-medium text-gray-500">IA 트리</span>
           <div className="flex items-center gap-2">
+            {/* 버전 히스토리 */}
+            <button
+              onClick={handleOpenVersions}
+              className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 text-xs hover:bg-gray-100 transition-colors"
+            >
+              버전 히스토리
+            </button>
             {/* 엑셀 업로드 */}
             <label className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 text-xs hover:bg-gray-100 cursor-pointer transition-colors">
               엑셀 업로드
@@ -418,6 +475,60 @@ export default function IATab({ projectId, projectName }: Props) {
           </div>
         )}
       </div>
+
+      {/* 버전 히스토리 드로어 */}
+      {showVersions && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* 백드롭 */}
+          <div
+            className="flex-1 bg-black/30"
+            onClick={() => setShowVersions(false)}
+          />
+          {/* 드로어 패널 */}
+          <div className="w-80 bg-white h-full shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <h2 className="text-sm font-semibold text-gray-800">버전 히스토리</h2>
+              <button
+                onClick={() => setShowVersions(false)}
+                className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="px-5 py-2.5 text-xs text-indigo-500 bg-indigo-50 border-b border-indigo-100">
+              버전을 선택하면 트리에 로드됩니다. [저장]하면 새 버전으로 등록됩니다.
+            </p>
+
+            <div className="flex-1 overflow-y-auto py-2">
+              {versionsLoading ? (
+                <div className="flex items-center justify-center h-24">
+                  <span className="inline-block w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : versions.length === 0 ? (
+                <p className="px-5 py-6 text-xs text-gray-400 text-center">저장된 버전이 없습니다</p>
+              ) : (
+                versions.map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => handleLoadVersion(v.id)}
+                    disabled={loadingVersionId === v.id}
+                    className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0 disabled:opacity-50 transition-colors"
+                  >
+                    <div>
+                      <span className="text-sm font-medium text-gray-800">v{v.version_number}</span>
+                      <span className="ml-2 text-xs text-gray-400">{formatDate(v.created_at)}</span>
+                    </div>
+                    {loadingVersionId === v.id && (
+                      <span className="inline-block w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
