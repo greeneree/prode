@@ -177,7 +177,7 @@ export default function DescriptionTab({ projectId }: Props) {
   }
 
   const handleNodeSelect = (node: IANode) => {
-    if (node.type !== 'page') return
+    if (node.type === 'element') return
     setSelectedNode(node)
     setImagePreview(null)
     setImageBase64(null)
@@ -314,15 +314,15 @@ export default function DescriptionTab({ projectId }: Props) {
             <p className="px-4 py-3 text-xs text-gray-400">먼저 IA를 생성해주세요</p>
           ) : (
             flatNodes.map((node) => {
-              const isPage = node.type === 'page'
+              const isSelectable = node.type !== 'element'
               const isSelected = selectedNode?.id === node.id
               return (
                 <div
                   key={node.id}
-                  onClick={() => isPage && handleNodeSelect(node)}
+                  onClick={() => isSelectable && handleNodeSelect(node)}
                   style={{ paddingLeft: `${node.depth * 14 + 12}px` }}
                   className={`flex items-center gap-1.5 py-1.5 pr-3 mx-1 rounded-md text-sm transition-colors ${
-                    isPage
+                    isSelectable
                       ? isSelected
                         ? 'bg-indigo-50 text-indigo-700 font-medium cursor-pointer'
                         : 'text-gray-700 hover:bg-gray-100 cursor-pointer'
