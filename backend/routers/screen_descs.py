@@ -63,7 +63,7 @@ def analyze_screen(body: AnalyzeRequest):
 
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
-        model="claude-sonnet-4-5-20251022",
+        model="claude-sonnet-4-20250514",
         max_tokens=2048,
         system=ANALYZE_SYSTEM,
         messages=[{
